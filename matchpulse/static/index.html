@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MATCHPULSE</title>
+<meta name="description" content="Evidence-first match intelligence on synthetic football events.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<a class="skip" href="#story">Skip to the story</a>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="wordmark">MATCHPULSE</span>
+    <span class="tagline">Beyond the scoreline — explain why the game changed</span>
+  </div>
+  <p class="synthetic" role="note"><strong>Synthetic data.</strong> Fictional teams, players and events — not official Premier League data.</p>
+</header>
+
+<section class="controls" aria-label="Match setup">
+  <label>Scenario
+    <select id="scenario"></select>
+  </label>
+  <label class="narrow">Seed
+    <input id="seed" type="number" min="0" value="7">
+  </label>
+  <label class="narrow">Window
+    <select id="window"><option value="5" selected>5 min</option><option value="10">10 min</option><option value="3">3 min</option></select>
+  </label>
+  <label>Narrative writer
+    <select id="writer">
+      <option value="auto">Auto (Foundry if configured)</option>
+      <option value="template">Deterministic templates</option>
+      <option value="fault_injection">Simulated faulty model (reviewer test)</option>
+    </select>
+  </label>
+  <div class="seg" role="group" aria-label="Language">
+    <button type="button" data-lang="en" aria-pressed="true">English</button>
+    <button type="button" data-lang="id" aria-pressed="false">Bahasa Indonesia</button>
+  </div>
+  <button id="run" class="primary" type="button">Analyse match</button>
+  <label class="upload">Upload CSV
+    <input id="csv" type="file" accept=".csv,text/csv">
+  </label>
+</section>
+
+<p id="banner" class="banner" hidden role="status"></p>
+
+<main id="main">
+  <section class="scorebug" aria-live="polite">
+    <div class="team home"><span class="swatch"></span><span id="homeName">—</span></div>
+    <div class="score"><span id="homeScore">–</span><span class="dash">–</span><span id="awayScore">–</span></div>
+    <div class="team away"><span id="awayName">—</span><span class="swatch"></span></div>
+    <div class="scenario-desc" id="scenarioDesc"></div>
+  </section>
+
+  <section class="pulse" aria-labelledby="pulseTitle">
+    <div class="pulse-head">
+      <h2 id="pulseTitle">Match pulse</h2>
+      <p class="hint">Bars show which team generated more attacking threat in each window (final-third entries + 3×shots + high turnovers won). Shaded bands are detected shifts — select one to open its evidence.</p>
+    </div>
+    <div id="pulseChart" class="pulse-chart"></div>
+    <div id="tooltip" class="tooltip" hidden></div>
+  </section>
+
+  <div class="grid">
+    <section id="story" class="story" aria-labelledby="storyTitle">
+      <div class="story-head">
+        <h2 id="storyTitle">The story</h2>
+        <div class="seg audience" role="group" aria-label="Audience">
+          <button type="button" data-mode="casual" aria-pressed="true">Fan</button>
+          <button type="button" data-mode="analyst" aria-pressed="false">Analyst</button>
+          <button type="button" data-mode="broadcast" aria-pressed="false">Broadcast</button>
+        </div>
+      </div>
+      <div id="storyBody" class="story-body"><p class="empty">Choose a scenario and select “Analyse match”.</p></div>
+    </section>
+
+    <aside class="side">
+      <section aria-labelledby="momentsTitle">
+        <h2 id="momentsTitle">Detected shifts</h2>
+        <ol id="moments" class="moments"></ol>
+      </section>
+      <section id="evidence" class="evidence" aria-labelledby="evidenceTitle" hidden>
+        <h2 id="evidenceTitle">Evidence</h2>
+        <div id="evidenceBody"></div>
+      </section>
+      <section aria-labelledby="statsTitle">
+        <h2 id="statsTitle">Match numbers</h2>
+        <table id="stats" class="stats"></table>
+      </section>
+    </aside>
+  </div>
+
+  <div class="grid lower">
+    <section aria-labelledby="agentsTitle">
+      <h2 id="agentsTitle">Agent run</h2>
+      <p id="orch" class="hint"></p>
+      <ol id="trace" class="trace"></ol>
+    </section>
+    <section aria-labelledby="reviewTitle">
+      <h2 id="reviewTitle">Quality review</h2>
+      <div id="review"></div>
+    </section>
+    <section aria-labelledby="gtTitle">
+      <h2 id="gtTitle">Check against ground truth</h2>
+      <p class="hint">Patterns deliberately injected by the generator, compared with what the detector found.</p>
+      <div id="gt"></div>
+    </section>
+    <section aria-labelledby="exportTitle">
+      <h2 id="exportTitle">Exports</h2>
+      <ul class="exports">
+        <li><a id="dlCsv" href="#">Synthetic events (CSV)</a></li>
+        <li><a id="dlJson" href="#">Synthetic events + ground truth (JSON)</a></li>
+        <li><button type="button" id="dlInsights" class="link">Full insight report (JSON)</button></li>
+        <li><button type="button" id="dlOverlay" class="link">Broadcast overlay payload (JSON)</button></li>
+      </ul>
+      <p id="evalSummary" class="hint"></p>
+    </section>
+  </div>
+</main>
+
+<footer class="foot">
+  Built for the Microsoft × Premier League “Inside the Game” hackathon. Statistics are computed deterministically; language models only reword verified claims.
+</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

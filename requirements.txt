@@ -1,0 +1,7 @@
+# Runtime dependencies (pinned versions verified with Python 3.13 on 2026-10-18)
+agent-framework-core==1.22.0
+agent-framework-foundry==1.15.0
+azure-identity==1.26.0
+fastapi==0.146.0
+uvicorn==0.53.0
+pydantic==2.13.5

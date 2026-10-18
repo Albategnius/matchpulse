@@ -1,0 +1,293 @@
+{
+  "version": "1.0.0",
+  "disclaimer": "SYNTHETIC DATA \u2014 generated for the Microsoft x Premier League 'Inside the Game' hackathon. Fictional teams, players and events. Not official Premier League data.",
+  "detector_config": {
+    "smooth_windows": 3,
+    "min_segment_windows": 2,
+    "bridge_gap_windows": 1,
+    "dominance_combined": 0.66,
+    "dominance_fte_share": 0.6,
+    "dominance_min_windows": 3,
+    "press_high_pressures": 6.5,
+    "press_linked_turnovers": 2.0,
+    "press_vs_median_ratio": 1.8,
+    "counter_fast_breaks": 1.3,
+    "counter_min_total": 5,
+    "swing_threshold": 0.45,
+    "swing_min_windows": 4,
+    "swing_max_gap_min": 25.0,
+    "comeback_from_min": 65.0,
+    "low_event_max_shots": 12
+  },
+  "detection": {
+    "dev": {
+      "per_pattern": {
+        "dominance": {
+          "precision": 0.837,
+          "recall": 0.9,
+          "f1": 0.867,
+          "tp": 36,
+          "fp": 7,
+          "fn": 4
+        },
+        "high_press": {
+          "precision": 1.0,
+          "recall": 0.8,
+          "f1": 0.889,
+          "tp": 16,
+          "fp": 0,
+          "fn": 4
+        },
+        "counterattack": {
+          "precision": 0.682,
+          "recall": 0.75,
+          "f1": 0.714,
+          "tp": 15,
+          "fp": 7,
+          "fn": 5
+        },
+        "momentum_swing": {
+          "precision": 0.909,
+          "recall": 1.0,
+          "f1": 0.952,
+          "tp": 10,
+          "fp": 1,
+          "fn": 0
+        },
+        "late_comeback": {
+          "precision": 0.769,
+          "recall": 1.0,
+          "f1": 0.87,
+          "tp": 10,
+          "fp": 3,
+          "fn": 0
+        },
+        "low_event": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "tp": 10,
+          "fp": 0,
+          "fn": 0
+        }
+      },
+      "overall": {
+        "precision": 0.843,
+        "recall": 0.882,
+        "f1": 0.862,
+        "tp": 97,
+        "fp": 18,
+        "fn": 13
+      },
+      "mean_abs_start_error_min": 3.27,
+      "matches": 60,
+      "seeds": "0-9",
+      "per_scenario": {
+        "dominance": {
+          "precision": 0.909,
+          "recall": 1.0,
+          "f1": 0.952,
+          "tp": 10,
+          "fp": 1,
+          "fn": 0
+        },
+        "high_press": {
+          "precision": 0.762,
+          "recall": 0.8,
+          "f1": 0.78,
+          "tp": 16,
+          "fp": 5,
+          "fn": 4
+        },
+        "counterattack": {
+          "precision": 0.938,
+          "recall": 0.75,
+          "f1": 0.833,
+          "tp": 15,
+          "fp": 1,
+          "fn": 5
+        },
+        "momentum_swing": {
+          "precision": 0.931,
+          "recall": 0.9,
+          "f1": 0.915,
+          "tp": 27,
+          "fp": 2,
+          "fn": 3
+        },
+        "late_comeback": {
+          "precision": 0.826,
+          "recall": 0.95,
+          "f1": 0.884,
+          "tp": 19,
+          "fp": 4,
+          "fn": 1
+        },
+        "low_event": {
+          "precision": 0.667,
+          "recall": 1.0,
+          "f1": 0.8,
+          "tp": 10,
+          "fp": 5,
+          "fn": 0
+        }
+      },
+      "intended_window_hit_rate": 0.882
+    },
+    "held_out": {
+      "per_pattern": {
+        "dominance": {
+          "precision": 0.745,
+          "recall": 0.925,
+          "f1": 0.825,
+          "tp": 111,
+          "fp": 38,
+          "fn": 9
+        },
+        "high_press": {
+          "precision": 1.0,
+          "recall": 0.867,
+          "f1": 0.929,
+          "tp": 52,
+          "fp": 0,
+          "fn": 8
+        },
+        "counterattack": {
+          "precision": 0.667,
+          "recall": 0.6,
+          "f1": 0.632,
+          "tp": 36,
+          "fp": 18,
+          "fn": 24
+        },
+        "momentum_swing": {
+          "precision": 1.0,
+          "recall": 0.967,
+          "f1": 0.983,
+          "tp": 29,
+          "fp": 0,
+          "fn": 1
+        },
+        "late_comeback": {
+          "precision": 0.811,
+          "recall": 1.0,
+          "f1": 0.896,
+          "tp": 30,
+          "fp": 7,
+          "fn": 0
+        },
+        "low_event": {
+          "precision": 1.0,
+          "recall": 0.967,
+          "f1": 0.983,
+          "tp": 29,
+          "fp": 0,
+          "fn": 1
+        }
+      },
+      "overall": {
+        "precision": 0.82,
+        "recall": 0.87,
+        "f1": 0.844,
+        "tp": 287,
+        "fp": 63,
+        "fn": 43
+      },
+      "mean_abs_start_error_min": 3.28,
+      "matches": 180,
+      "seeds": "100-129",
+      "per_scenario": {
+        "dominance": {
+          "precision": 0.833,
+          "recall": 1.0,
+          "f1": 0.909,
+          "tp": 30,
+          "fp": 6,
+          "fn": 0
+        },
+        "high_press": {
+          "precision": 0.812,
+          "recall": 0.867,
+          "f1": 0.839,
+          "tp": 52,
+          "fp": 12,
+          "fn": 8
+        },
+        "counterattack": {
+          "precision": 0.72,
+          "recall": 0.6,
+          "f1": 0.655,
+          "tp": 36,
+          "fp": 14,
+          "fn": 24
+        },
+        "momentum_swing": {
+          "precision": 0.862,
+          "recall": 0.9,
+          "f1": 0.88,
+          "tp": 81,
+          "fp": 13,
+          "fn": 9
+        },
+        "late_comeback": {
+          "precision": 0.881,
+          "recall": 0.983,
+          "f1": 0.929,
+          "tp": 59,
+          "fp": 8,
+          "fn": 1
+        },
+        "low_event": {
+          "precision": 0.744,
+          "recall": 0.967,
+          "f1": 0.841,
+          "tp": 29,
+          "fp": 10,
+          "fn": 1
+        }
+      },
+      "intended_window_hit_rate": 0.87
+    }
+  },
+  "narrative": {
+    "narratives": 180,
+    "claims_checked": 1292,
+    "numeric_factual_consistency": 1.0,
+    "evidence_coverage": 1.0,
+    "unsupported_claim_rate": 0.0,
+    "personalization": {
+      "mean_chars": {
+        "casual": 324,
+        "analyst": 1131,
+        "broadcast": 204
+      },
+      "mean_numbers_cited": {
+        "casual": 10.9,
+        "analyst": 16.4,
+        "broadcast": 8.4
+      },
+      "mean_word_jaccard_between_modes": {
+        "casual|analyst": 0.188,
+        "casual|broadcast": 0.312,
+        "analyst|broadcast": 0.154
+      },
+      "note": "Lower Jaccard = more different vocabulary. Broadcast additionally emits a structured overlay; analyst adds before/after tables."
+    }
+  },
+  "reviewer_fault_injection": {
+    "corrupted_claims": 215,
+    "caught": 215,
+    "catch_rate": 1.0,
+    "untouched_claims": 199,
+    "false_alarms": 0
+  },
+  "latency": {
+    "runs": 30,
+    "writer": "template (local fallback)",
+    "p50_ms": 145.4,
+    "p95_ms": 204.2,
+    "failure_rate": 0.0,
+    "note": "Excludes event generation; Foundry model latency is not included (no cloud model in this environment)."
+  },
+  "elapsed_s": 13.9
+}
