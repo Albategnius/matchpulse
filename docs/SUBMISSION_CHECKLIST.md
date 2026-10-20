@@ -20,17 +20,18 @@ Legend: ✅ done and verified · ⚠️ done but not verified in the build envir
 | Dashboard | ✅ | Local run + screenshots (desktop and 390 px mobile) |
 | Tests from a clean virtual environment | ✅ | 45 passed |
 | Evaluation results | ✅ | `reports/EVALUATION.md` |
-| Dockerfile | ⚠️ | Written; image build could not be verified here (Docker Hub unreachable from the build sandbox). `az containerapp up --source .` builds it in Azure. |
-| Azure Container Apps deployment | ⬜ | Run `bash infra/deploy-azure.sh`; record the URL only after the health check passes |
+| Dockerfile | ✅ | Built in Azure by `az containerapp up --source .` and running |
+| Azure Container Apps deployment | ✅ | https://matchpulse.politefield-ec1b9bf6.southeastasia.azurecontainerapps.io — deployed 20 Oct 2026 via Cloud Shell (southeastasia, rg-matchpulse, min/max replicas 1/3); `/api/health` returned `status: ok` |
 
 ## Official submission fields
 
 | Field | Status | Where |
 |---|---|---|
-| Registered before 20 Oct 2026 12:00 pm PT | ⬜ | Hackathon registration page |
+| Registered before 20 Oct 2026 12:00 pm PT | ✅ | Registered on Innovation Studio |
+| Project page created on Innovation Studio | ⬜ | "Create project" in the hackathon site |
 | Project name + description (what, Microsoft tech, problem) | ✅ draft | `docs/PITCH.md` |
-| Public GitHub repository URL | ⬜ | Create repo, push, set visibility **Public** |
-| Working demo link (free to test until 10 Nov) | ⬜ | Azure Container Apps URL |
+| Public GitHub repository URL | ✅ | https://github.com/Albategnius/matchpulse |
+| Working demo link (free to test until 10 Nov) | ✅ | https://matchpulse.politefield-ec1b9bf6.southeastasia.azurecontainerapps.io |
 | Demo video < 2 min, public on YouTube/Vimeo, no copyrighted music | ⬜ | Script: `docs/DEMO_SCRIPT.md` |
 | Materials in English | ✅ | All docs |
 

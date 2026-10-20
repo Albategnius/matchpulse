@@ -8,6 +8,8 @@ MATCHPULSE is an evidence-first match intelligence system. It detects meaningful
 
 Built for the Microsoft × Premier League *Inside the Game* Developer Hackathon 2026.
 
+**Live demo (Azure Container Apps):** https://matchpulse.politefield-ec1b9bf6.southeastasia.azurecontainerapps.io  ·  health: https://matchpulse.politefield-ec1b9bf6.southeastasia.azurecontainerapps.io/api/health  ·  no login or key required.
+
 ---
 
 ## The problem
@@ -56,7 +58,7 @@ From `python scripts/evaluate.py` (full report: [`reports/EVALUATION.md`](report
 Requires Python 3.11+ (tested on 3.13).
 
 ```bash
-git clone <your-repo-url> matchpulse && cd matchpulse
+git clone https://github.com/Albategnius/matchpulse && cd matchpulse
 python -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install --pre -r requirements-dev.txt
