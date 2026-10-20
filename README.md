@@ -29,7 +29,8 @@ synthetic events / CSV → validation → deterministic analytics → match-shif
 3. **Explainable match-shift detection** — each detected moment has a time window, team, before/after metric deltas against a stated baseline, an evidence-strength score, limitations, and the next analytical question. Wording is associative ("coincided with", "consistent with"), never causal.
 4. **Multi-agent workflow on Microsoft Agent Framework** — Event Analytics Agent → Tactical Insight Agent → Narrative & Personalization Agent ⇄ Evidence & Quality Reviewer, with typed messages, a bounded regeneration loop, timeouts and a full execution trace. See [`docs/AGENTS.md`](docs/AGENTS.md).
 5. **Microsoft Foundry (optional)** — when configured, the Narrative agent uses a Foundry model (via `FoundryChatClient`, Entra ID / managed identity, no API keys) to reword verified claims for each audience. The model **cannot add claims or change their evidence**, and every number it writes is checked by the reviewer. Without Foundry the app runs fully on deterministic templates.
-6. **Evidence & Quality Reviewer** — checks every number in every sentence against the evidence registry, removes unsupported or causal claims, requests one regeneration, and otherwise falls back to the verified template. A *simulated faulty model* mode in the UI shows this happening.
+6. **Live replay** — press *Replay live* and the four agents re-run every 5 match-minutes using only the events seen so far: a LIVE clock, an "ongoing" badge on shifts still in progress, the minute each shift was first flagged, and narration that reports the score *at that minute*. A regression test checks that deleting all later events leaves the live result unchanged (no look-ahead).
+7. **Evidence & Quality Reviewer** — checks every number in every sentence against the evidence registry, removes unsupported or causal claims, requests one regeneration, and otherwise falls back to the verified template. A *simulated faulty model* mode in the UI shows this happening.
 
 ## Measured results
 
@@ -40,6 +41,7 @@ From `python scripts/evaluate.py` (full report: [`reports/EVALUATION.md`](report
 | Match-shift detection, all patterns | 0.82 | 0.87 | 0.84 |
 | Weakest pattern (counterattack) | 0.67 | 0.60 | 0.63 |
 
+- **Live replay** (detector sees only events up to the current minute): 80% of injected patterns are flagged while still running; median time-to-flag 15 min (high press 10 min, momentum swing 35 min — reported openly in the evaluation).
 - Template narratives: 100% of 1,292 claims verified against evidence (180 narratives, 3 modes × 2 languages).
 - Reviewer stress test: 215 of 215 corrupted claims removed, 0 false alarms — against a *simple* fault model (changed numbers, explicit causal words). Subtler, number-free errors are not caught by this checker.
 - End-to-end workflow (local mode): p50 ≈ 0.13 s, 0% failures over 30 runs.

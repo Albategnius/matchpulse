@@ -35,13 +35,29 @@ Per scenario (overall F1): dominance 0.91, high_press 0.84, counterattack 0.66, 
 
 ## Personalization
 
-- Mean characters per narrative: {'casual': 324, 'analyst': 1131, 'broadcast': 204}
+- Mean characters per narrative: {'casual': 329, 'analyst': 1131, 'broadcast': 204}
 - Mean numbers cited: {'casual': 10.9, 'analyst': 16.4, 'broadcast': 8.4}
-- Mean word Jaccard similarity between modes: {'casual|analyst': 0.188, 'casual|broadcast': 0.312, 'analyst|broadcast': 0.154}
+- Mean word Jaccard similarity between modes: {'casual|analyst': 0.19, 'casual|broadcast': 0.316, 'analyst|broadcast': 0.154}
+
+## Live replay: how soon is a pattern flagged?
+
+Each held-out match is replayed in 5-minute steps; the detector only sees events up to the current minute. Latency = first minute a matching moment appears − true start of the injected pattern.
+
+| Pattern | Patterns | Flagged live | Median latency (min) | Flagged while still running |
+|---|---|---|---|---|
+| dominance | 120 | 115 | 20.0 | 96% |
+| high_press | 60 | 57 | 10.0 | 93% |
+| counterattack | 60 | 43 | 15.0 | 67% |
+| momentum_swing | 30 | 29 | 35.0 | 0% |
+| late_comeback | 30 | 30 | 15.0 | 100% |
+| low_event | 30 | 29 | 90.0 | 97% |
+| **overall (excl. low_event)** | 300 | 274 | 15.0 | 80% |
+
+Thresholds favour precision: patterns must persist 10–20 minutes before they are reported. A more sensitive configuration (shorter persistence) was tested on dev seeds and cut median latency only marginally while precision fell from 0.84 to 0.75, so it was not adopted. Momentum swings need two opposing control spells and are, by design, only reported once the second spell is established. `low_event` is a whole-match judgement, made only at 90'.
 
 ## Latency and reliability
 
-- 30 end-to-end workflow runs (template (local fallback)): p50 145.4 ms, p95 204.2 ms, failure rate 0%
+- 30 end-to-end workflow runs (template (local fallback)): p50 146.5 ms, p95 182.8 ms, failure rate 0%
 - Excludes event generation; Foundry model latency is not included (no cloud model in this environment).
 
 ## Limitations

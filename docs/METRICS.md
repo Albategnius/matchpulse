@@ -46,6 +46,10 @@ Series are smoothed with a centered 3-window mean. Flagged windows are merged in
 
 Evidence strength (0–1) combines the size of the effect and its duration; it is a ranking aid, not a probability.
 
+## Live replay
+
+`analyse(events, meta, window_min, until_min)` keeps only events with `timestamp < until_min × 60` and only complete windows; totals include every event before the cut-off. A detected moment whose window reaches the cut-off is marked `ongoing` and its end is clamped to the cut-off. `low_event` is evaluated only at full time. Time-to-flag in `reports/EVALUATION.md` replays held-out matches in 5-minute steps.
+
 ## Not computed
 
 xG, ball or player speed, distance covered, pressing intensity from tracking, or any metric needing positional tracking data.

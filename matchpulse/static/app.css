@@ -162,3 +162,19 @@ pre.json { background: var(--paper); border: 1px solid var(--rule); border-radiu
 .legend { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; margin: 0 0 .3rem; font-size: .85rem; color: var(--ink-2); }
 .legend .lg { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: .35rem; vertical-align: -1px; }
 .legend .lg.home { background: var(--home); } .legend .lg.away { background: var(--away); }
+
+/* live replay */
+.score-wrap { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+.clock { font: 600 1rem/1 var(--display); letter-spacing: .04em; color: var(--ink-2); padding: .25rem .6rem; border-radius: 4px; border: 1px solid var(--rule); }
+.clock.live { color: #fff; background: var(--bad); border-color: var(--bad); }
+.replay { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: .25rem 0 .5rem; }
+.primary.small { min-height: 40px; padding: .4rem .9rem; }
+.replay input[type=range] { flex: 1 1 220px; max-width: 420px; accent-color: var(--ink); min-height: 40px; }
+.replay-label { font-size: .85rem; color: var(--ink-2); }
+.replay-out { font: 600 1.05rem/1 var(--display); min-width: 5.5rem; font-variant-numeric: tabular-nums; }
+.replay-hint { margin: 0; }
+.pulse-chart .future { fill: var(--paper); opacity: .7; }
+.pulse-chart .now { stroke: var(--bad); stroke-width: 2; }
+.pulse-chart .now-label { fill: var(--bad); font-weight: 700; }
+.tag-live { display: inline-block; font-size: .72rem; font-weight: 600; color: #fff; background: var(--bad); border-radius: 4px; padding: 0 .35rem; margin-left: .35rem; vertical-align: 1px; }
+.status.pending { color: var(--ink-3); }

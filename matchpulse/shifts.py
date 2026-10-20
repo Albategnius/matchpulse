@@ -55,6 +55,7 @@ class Moment:
     limitations: list[str]                  # keys, localized in narrative layer
     next_question: str                      # key, localized in narrative layer
     facts: dict[str, Any] = field(default_factory=dict)  # numbers the narrative may cite
+    status: str = "final"                   # final | ongoing (live replay: still running at the cut-off)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -127,6 +128,11 @@ def detect_shifts(an: MatchAnalytics, cfg: Optional[DetectorConfig] = None) -> l
     moments += _detect_momentum_swing(an, cfg)
     moments += _detect_comeback(an, cfg)
     moments += _detect_low_event(an, cfg)
+    if an.live:
+        for m in moments:
+            if m.end_min >= an.until_min - 1e-6:
+                m.end_min = an.until_min
+                m.status = "ongoing"
     moments.sort(key=lambda m: (m.start_min, m.pattern))
     for i, m in enumerate(moments):
         m.id = f"M{i + 1}"
@@ -358,6 +364,8 @@ def _detect_comeback(an: MatchAnalytics, cfg: DetectorConfig) -> list[Moment]:
 
 
 def _detect_low_event(an: MatchAnalytics, cfg: DetectorConfig) -> list[Moment]:
+    if an.live:  # a whole-match judgement; only made at full time
+        return []
     home, away = an.meta.home, an.meta.away
     shots = an.totals[home]["shots"] + an.totals[away]["shots"]
     if shots > cfg.low_event_max_shots:

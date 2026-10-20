@@ -71,6 +71,11 @@ class MatchAnalytics:
     fast_breaks: list[FastBreak]
     flags: dict[int, EventFlags] = field(repr=False)
     events: list[Event] = field(repr=False)
+    until_min: float = 90.0                # live replay: analysis horizon (90 = full time)
+
+    @property
+    def live(self) -> bool:
+        return self.until_min < 90.0
 
     def score(self) -> dict[str, int]:
         return {t: int(self.totals[t]["goals"]) for t in (self.meta.home, self.meta.away)}
@@ -85,6 +90,8 @@ class MatchAnalytics:
             "state_transitions": self.state_transitions,
             "fast_breaks": [fb.__dict__ for fb in self.fast_breaks],
             "score": self.score(),
+            "until_min": self.until_min,
+            "live": self.live,
         }
 
 
@@ -147,7 +154,8 @@ def detect_fast_breaks(events: list[Event]) -> list[FastBreak]:
     return breaks
 
 
-def _possession_seconds(events: list[Event], lo: float, hi: float) -> dict[str, float]:
+def _possession_seconds(events: list[Event], lo: float, hi: float,
+                        horizon: float = MATCH_SECONDS) -> dict[str, float]:
     """Seconds of possession per team inside [lo, hi), from possession start times."""
     starts: list[tuple[float, str]] = []
     last_pid = None
@@ -157,7 +165,7 @@ def _possession_seconds(events: list[Event], lo: float, hi: float) -> dict[str, 
             last_pid = e.possession_id
     out: dict[str, float] = {}
     for i, (s, team) in enumerate(starts):
-        end = starts[i + 1][0] if i + 1 < len(starts) else MATCH_SECONDS
+        end = starts[i + 1][0] if i + 1 < len(starts) else horizon
         a, b = max(s, lo), min(end, hi)
         if b > a:
             out[team] = out.get(team, 0.0) + (b - a)
@@ -207,9 +215,21 @@ def threat_units(c: dict[str, float]) -> float:
     return c["final_third_entries"] + 3 * c["shots"] + c["high_turnovers_forced"]
 
 
-def analyse(events: list[Event], meta: MatchMeta, window_min: int = 5) -> MatchAnalytics:
+def analyse(events: list[Event], meta: MatchMeta, window_min: int = 5,
+            until_min: Optional[float] = None) -> MatchAnalytics:
+    """Compute all deterministic analytics.
+
+    `until_min` (live replay) restricts the analysis to events before that minute, as if
+    the match were being watched live. Only complete windows are used for window-level
+    analysis; totals include every event up to the cut-off.
+    """
     if window_min < 1 or window_min > 45:
         raise ValueError("window_min must be between 1 and 45")
+    if until_min is not None and not (1 <= until_min <= 90):
+        raise ValueError("until_min must be between 1 and 90")
+    horizon = MATCH_SECONDS if until_min is None or until_min >= 90 else until_min * 60
+    if horizon < MATCH_SECONDS:
+        events = [e for e in events if e.timestamp_s < horizon]
     teams = (meta.home, meta.away)
     opponent = {meta.home: meta.away, meta.away: meta.home}
     flags = compute_flags(events)
@@ -221,16 +241,19 @@ def analyse(events: list[Event], meta: MatchMeta, window_min: int = 5) -> MatchA
         _accumulate(totals, e, flags[e.event_id], fast_ids, opponent)
     for fb in breaks:
         totals[fb.team]["fast_breaks"] += 1
-    _finalize(totals, _possession_seconds(events, 0, MATCH_SECONDS))
+    _finalize(totals, _possession_seconds(events, 0, horizon, horizon))
 
     # Tumbling windows
     w_sec = window_min * 60
-    n_windows = MATCH_SECONDS // w_sec
+    n_windows = max(1, int(horizon // w_sec))
     windows: list[dict[str, Any]] = []
     buckets: list[list[Event]] = [[] for _ in range(n_windows)]
     for e in events:
-        idx = min(int(e.timestamp_s // w_sec), n_windows - 1)
-        buckets[idx].append(e)
+        idx = int(e.timestamp_s // w_sec)
+        if horizon == MATCH_SECONDS:
+            idx = min(idx, n_windows - 1)
+        if idx < n_windows:
+            buckets[idx].append(e)
     for i in range(n_windows):
         lo, hi = i * w_sec, (i + 1) * w_sec
         counts = {t: _empty_counts() for t in teams}
@@ -239,7 +262,7 @@ def analyse(events: list[Event], meta: MatchMeta, window_min: int = 5) -> MatchA
         for fb in breaks:
             if lo <= fb.start_s < hi:
                 counts[fb.team]["fast_breaks"] += 1
-        _finalize(counts, _possession_seconds(events, lo, hi))
+        _finalize(counts, _possession_seconds(events, lo, hi, horizon))
         windows.append({
             "index": i, "start_min": lo / 60, "end_min": hi / 60,
             "event_count": len(buckets[i]), "empty": len(buckets[i]) == 0,
@@ -270,7 +293,8 @@ def analyse(events: list[Event], meta: MatchMeta, window_min: int = 5) -> MatchA
             if st_before != st_after:
                 transitions.append({"minute": round(e.minute, 1), "team": e.team, "event_id": e.event_id,
                                     "from": st_before, "to": st_after, "score": dict(score)})
-    return MatchAnalytics(meta, window_min, totals, windows, momentum, goals, transitions, breaks, flags, events)
+    return MatchAnalytics(meta, window_min, totals, windows, momentum, goals, transitions, breaks, flags, events,
+                          until_min=round(horizon / 60, 2))
 
 
 def _state(score: dict[str, int], team: str, opponent: dict[str, str]) -> str:

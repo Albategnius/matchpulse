@@ -53,7 +53,10 @@
 <main id="main">
   <section class="scorebug" aria-live="polite">
     <div class="team home"><span class="swatch"></span><span id="homeName">—</span></div>
-    <div class="score"><span id="homeScore">–</span><span class="dash">–</span><span id="awayScore">–</span></div>
+    <div class="score-wrap">
+      <div class="score"><span id="homeScore">–</span><span class="dash">–</span><span id="awayScore">–</span></div>
+      <div id="clock" class="clock">Full time</div>
+    </div>
     <div class="team away"><span id="awayName">—</span><span class="swatch"></span></div>
     <div class="scenario-desc" id="scenarioDesc"></div>
   </section>
@@ -62,6 +65,13 @@
     <div class="pulse-head">
       <h2 id="pulseTitle">Match pulse</h2>
       <p class="hint">Bars show which team generated more attacking threat in each window (final-third entries + 3×shots + high turnovers won). Shaded bands are detected shifts — select one to open its evidence.</p>
+    </div>
+    <div class="replay" role="group" aria-label="Live replay">
+      <button type="button" id="play" class="primary small" aria-pressed="false">Replay live</button>
+      <label for="minute" class="replay-label">Minute</label>
+      <input id="minute" type="range" min="5" max="90" step="5" value="90" aria-describedby="minuteLabel">
+      <output id="minuteLabel" class="replay-out">Full time</output>
+      <span class="hint replay-hint">Replays the match in 5-minute steps: the agents only see events up to that minute.</span>
     </div>
     <div id="pulseChart" class="pulse-chart"></div>
     <div id="tooltip" class="tooltip" hidden></div>

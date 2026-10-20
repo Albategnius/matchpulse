@@ -1,7 +1,10 @@
 "use strict";
 (() => {
   const $ = (id) => document.getElementById(id);
-  const state = { lang: "en", mode: "casual", data: null, scenarios: [], selected: null, upload: null };
+  const state = { lang: "en", mode: "casual", data: null, scenarios: [], selected: null, upload: null,
+                  until: 90, playing: false, firstSeen: {}, req: 0 };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const seenKey = (m) => `${m.pattern}|${m.team}|${Math.round(m.start_min / 10)}`;
   const PATTERN = {
     dominance: "Sustained dominance", high_press: "High press", counterattack: "Counterattacking threat",
     momentum_swing: "Momentum swing", late_comeback: "Late comeback", low_event: "Low-event match",
@@ -35,8 +38,11 @@
       document.querySelectorAll("[data-mode]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
       renderStory();
     }));
-    $("run").addEventListener("click", () => { state.upload = null; run(); });
-    $("scenario").addEventListener("change", () => { state.upload = null; run(); });
+    $("run").addEventListener("click", () => { state.upload = null; stopReplay(); state.firstSeen = {}; run(); });
+    $("scenario").addEventListener("change", () => { state.upload = null; stopReplay(); state.firstSeen = {}; setMinute(90); run(); });
+    $("seed").addEventListener("change", () => { state.firstSeen = {}; });
+    $("minute").addEventListener("input", () => { stopReplay(); setMinute(+$("minute").value); run(); });
+    $("play").addEventListener("click", () => (state.playing ? stopReplay() : replay()));
     $("csv").addEventListener("change", onUpload);
     $("dlInsights").addEventListener("click", () => download("matchpulse_insights.json", state.data));
     $("dlOverlay").addEventListener("click", () => {
@@ -45,6 +51,33 @@
     });
     loadEval();
     run();
+  }
+
+  function setMinute(m) {
+    state.until = m;
+    $("minute").value = m;
+    $("minuteLabel").textContent = m >= 90 ? "Full time" : `Live ${m}'`;
+  }
+
+  function stopReplay() {
+    state.playing = false;
+    $("play").textContent = "Replay live";
+    $("play").setAttribute("aria-pressed", "false");
+  }
+
+  async function replay() {
+    if (state.upload) { banner("Live replay works on the synthetic scenarios.", false); return; }
+    state.playing = true;
+    $("play").textContent = "Pause";
+    $("play").setAttribute("aria-pressed", "true");
+    let m = state.until >= 90 ? 5 : state.until + 5;
+    if (m === 5) state.firstSeen = {};
+    for (; m <= 90 && state.playing; m += 5) {
+      setMinute(m);
+      await run();
+      await sleep(matchMedia("(prefers-reduced-motion: reduce)").matches ? 1600 : 1100);
+    }
+    stopReplay();
   }
 
   function download(name, obj) {
@@ -69,15 +102,18 @@
 
   async function run() {
     const btn = $("run");
+    const ticket = ++state.req;
     btn.disabled = true; btn.textContent = "Running agents…";
     banner("");
     try {
       const common = { window_min: +$("window").value, lang: state.lang, writer: $("writer").value };
+      if (!state.upload && state.until < 90) common.until_min = state.until;
       const res = state.upload
         ? await fetch("/api/analyze/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...common, csv: state.upload }) })
         : await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...common, scenario: $("scenario").value, seed: +$("seed").value || 0 }) });
       const data = await res.json();
+      if (ticket !== state.req) return;  // a newer request superseded this one
       if (data.status !== "ok") {
         const v = data.validation;
         const extra = v ? ` (${v.valid_rows ?? 0} valid of ${v.total_rows} rows; ${v.dropped_count} dropped)` : "";
@@ -86,6 +122,8 @@
         return;
       }
       state.data = data; state.selected = null;
+      const minute = data.analytics.until_min;
+      (data.moments || []).forEach((m) => { const k = seenKey(m); if (!(k in state.firstSeen) && minute < 90) state.firstSeen[k] = minute; });
       const w = data.validation?.warnings || [];
       const notes = [];
       if (data.writer_errors && Object.keys(data.writer_errors).length) notes.push(`Model writer unavailable (${Object.values(data.writer_errors)[0]}). Showing verified template narratives.`);
@@ -97,7 +135,7 @@
     } catch (e) {
       banner(`Could not reach the analysis service: ${e.message}. Check that the server is running.`, true);
     } finally {
-      btn.disabled = false; btn.textContent = "Analyse match";
+      if (ticket === state.req) { btn.disabled = false; btn.textContent = "Analyse match"; }
     }
   }
 
@@ -105,6 +143,9 @@
     const d = state.data, m = d.meta;
     $("homeName").textContent = m.home_name; $("awayName").textContent = m.away_name;
     $("homeScore").textContent = d.analytics.score[m.home]; $("awayScore").textContent = d.analytics.score[m.away];
+    const live = d.analytics.live;
+    $("clock").textContent = live ? `LIVE ${Math.round(d.analytics.until_min)}'` : "Full time";
+    $("clock").classList.toggle("live", live);
     const sc = state.scenarios.find((s) => s.key === m.scenario);
     $("scenarioDesc").textContent = state.upload ? `Uploaded dataset ${m.match_id}` : `${sc ? sc.description : ""} Seed ${m.seed}.`;
     const q = `scenario=${encodeURIComponent($("scenario").value)}&seed=${+$("seed").value || 0}`;
@@ -122,8 +163,15 @@
       s += `<rect class="band" data-mid="${mo.id}" x="${x(mo.start_min)}" y="8" width="${Math.max(4, x(mo.end_min) - x(mo.start_min))}" height="${H - 40}" rx="4"><title>${esc(mo.id)} ${esc(PATTERN[mo.pattern])}</title></rect>`;
       s += `<text class="band-label" x="${x(mo.start_min) + 4}" y="22">${mo.id}</text>`;
     });
+    if (an.live) {
+      s += `<rect class="future" x="${x(an.until_min)}" y="8" width="${x(90) - x(an.until_min)}" height="${H - 40}"><title>Not played yet</title></rect>`;
+    }
     s += `<line class="axis" x1="${padL}" x2="${W - padR}" y1="${mid}" y2="${mid}"/>`;
-    const bw = (W - padL - padR) / an.momentum.length;
+    if (an.live) {
+      s += `<line class="now" x1="${x(an.until_min)}" x2="${x(an.until_min)}" y1="8" y2="${H - 32}"/>`;
+      s += `<text class="now-label" x="${x(an.until_min) + 4}" y="${H - 36}">${Math.round(an.until_min)}'</text>`;
+    }
+    const bw = x(an.window_min) - x(0);
     an.momentum.forEach((w, i) => {
       const v = w.momentum, h = Math.abs(v) * amp, bx = x(w.start_min) + 1, width = Math.max(2, bw - 2);
       const y = v >= 0 ? mid - h : mid;
@@ -158,11 +206,14 @@
   // ---------- moments + evidence ----------
   function renderMoments() {
     const d = state.data;
-    if (!d.moments.length) { $("moments").innerHTML = `<li class="empty">No shift passed the detection thresholds.</li>`; return; }
+    if (!d.moments.length) {
+      $("moments").innerHTML = `<li class="empty">${d.analytics.live ? `No shift has passed the detection thresholds by ${Math.round(d.analytics.until_min)}'.` : "No shift passed the detection thresholds."}</li>`;
+      return;
+    }
     $("moments").innerHTML = d.moments.map((m) => `
       <li><button type="button" class="moment ${teamClass(m.team)}" data-mid="${m.id}" aria-current="false">
-        <span class="m-title">${m.id} · ${esc(PATTERN[m.pattern])}</span>
-        <span class="m-meta">${esc(teamName(m.team))}, ${Math.round(m.start_min)}'–${Math.round(m.end_min)}' · evidence ${esc(m.strength)}
+        <span class="m-title">${m.id} · ${esc(PATTERN[m.pattern])}${m.status === "ongoing" ? '<span class="tag-live">ongoing</span>' : ""}</span>
+        <span class="m-meta">${esc(teamName(m.team))}, ${Math.round(m.start_min)}'–${Math.round(m.end_min)}' · evidence ${esc(m.strength)}${seenKey(m) in state.firstSeen ? ` · flagged live at ${Math.round(state.firstSeen[seenKey(m)])}'` : ""}
         <span class="meter" aria-hidden="true"><i style="width:${Math.round(m.strength_score * 100)}%"></i></span></span>
       </button></li>`).join("");
     $("moments").querySelectorAll(".moment").forEach((b) => b.addEventListener("click", () => selectMoment(b.dataset.mid)));
@@ -277,7 +328,11 @@
     let h = "<table><thead><tr><th>Injected pattern</th><th>Window</th><th>Result</th></tr></thead><tbody>";
     d.ground_truth.forEach((g) => {
       const miss = missed.has(`${g.pattern}|${g.team}|${g.start_min}`);
-      h += `<tr><td>${esc(PATTERN[g.pattern])} · ${esc(teamName(g.team))}</td><td>${g.start_min}'–${g.end_min}'</td><td><span class="status ${miss ? "missed" : "ok"}">${miss ? "missed" : "detected"}</span></td></tr>`;
+      const live = d.analytics.live;
+      let cls = miss ? "missed" : "ok", label = miss ? "missed" : "detected";
+      if (live && g.started === false) { cls = "pending"; label = "not started yet"; }
+      else if (live && miss) { cls = "pending"; label = "not flagged yet"; }
+      h += `<tr><td>${esc(PATTERN[g.pattern])} · ${esc(teamName(g.team))}</td><td>${g.start_min}'–${g.end_min}'</td><td><span class="status ${cls}">${label}</span></td></tr>`;
     });
     h += "</tbody></table>";
     if (chk.fp.length) h += `<p class="hint">Also flagged without an injected label: ${chk.fp.map((f) => `${PATTERN[f.pattern]} (${esc(teamName(f.team))}, ${Math.round(f.start_min)}'–${Math.round(f.end_min)}')`).join("; ")}.</p>`;
@@ -290,7 +345,9 @@
       if (!r.ok) return;
       const e = await r.json();
       const o = e.detection?.held_out?.overall;
-      if (o) $("evalSummary").textContent = `Held-out evaluation (${e.detection.held_out.matches} matches): precision ${o.precision}, recall ${o.recall}, F1 ${o.f1}.`;
+      const lv = e.live_replay?.overall;
+      if (o) $("evalSummary").textContent = `Held-out evaluation (${e.detection.held_out.matches} matches): precision ${o.precision}, recall ${o.recall}, F1 ${o.f1}.` +
+        (lv ? ` Live replay: ${Math.round(lv.flagged_while_still_running * 100)}% of patterns flagged while still running, median ${lv.median_latency_min} min after they start.` : "");
     } catch (_) { /* optional */ }
   }
 

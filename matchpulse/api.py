@@ -47,6 +47,7 @@ class AnalyzeRequest(BaseModel):
     window_min: int = Field(default=5, ge=1, le=15)
     lang: Literal["en", "id"] = "en"
     writer: Literal["auto", "template", "fault_injection"] = "auto"
+    until_min: Optional[float] = Field(default=None, ge=1, le=90)
 
 
 class UploadRequest(BaseModel):
@@ -117,11 +118,14 @@ async def analyze(body: AnalyzeRequest) -> JSONResponse:
     if key in _CACHE and body.writer != "fault_injection":
         return JSONResponse({**_CACHE[key], "cached": True})
     events, meta, gts = generate_match(body.scenario, body.seed)
-    out = await _run(MatchRequest(events=events, meta=meta, window_min=body.window_min, lang=body.lang), body.writer)
+    out = await _run(MatchRequest(events=events, meta=meta, window_min=body.window_min, lang=body.lang,
+                                  until_min=body.until_min), body.writer)
     if out.get("status") == "ok":
         moments = [Moment(**m) for m in out["moments"]]
-        out["ground_truth"] = [g.to_dict() for g in gts]
-        out["detection_check"] = match(moments, gts)
+        until = out["analytics"]["until_min"]
+        started = [g for g in gts if g.start_min < until]   # live: only patterns that have begun
+        out["ground_truth"] = [dict(g.to_dict(), started=g.start_min < until) for g in gts]
+        out["detection_check"] = match(moments, started)
         _remember(key, out)
     return JSONResponse(out)
 

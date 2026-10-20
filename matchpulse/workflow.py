@@ -38,6 +38,7 @@ class MatchRequest:
     events: Optional[list[Event]] = None            # already-validated events (generator)
     meta: Optional[MatchMeta] = None
     window_min: int = 5
+    until_min: Optional[float] = None               # live replay horizon (None = full match)
     lang: str = "en"
     modes: tuple[str, ...] = MODES
     config: DetectorConfig = field(default_factory=DetectorConfig)
@@ -107,7 +108,7 @@ class EventAnalyticsAgent(Executor):
                 if not events or meta is None:
                     raise MatchDataError("No events supplied.")
                 report = ValidationReport(total_rows=len(events), valid_rows=len(events))
-            an = analyse(events, meta, req.window_min)
+            an = analyse(events, meta, req.window_min, req.until_min)
         except (MatchDataError, ValueError) as exc:
             rep = getattr(exc, "report", None)
             _trace(req, "Event Analytics Agent", t0, "failed", str(exc), None)
@@ -116,7 +117,8 @@ class EventAnalyticsAgent(Executor):
         sc = an.score()
         _trace(req, "Event Analytics Agent", t0, "ok",
                f"{report.valid_rows} valid events ({len(report.dropped)} dropped); "
-               f"{len(an.windows)} windows of {req.window_min} min; score {sc[meta.home]}-{sc[meta.away]}",
+               f"{len(an.windows)} windows of {req.window_min} min; score {sc[meta.home]}-{sc[meta.away]}"
+               + (f" (live replay at {an.until_min:.0f}')" if an.live else ""),
                "Tactical Insight Agent")
         await ctx.send_message(AnalyticsPacket(req, an, report))
 

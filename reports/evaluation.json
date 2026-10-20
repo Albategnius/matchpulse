@@ -257,7 +257,7 @@
     "unsupported_claim_rate": 0.0,
     "personalization": {
       "mean_chars": {
-        "casual": 324,
+        "casual": 329,
         "analyst": 1131,
         "broadcast": 204
       },
@@ -267,8 +267,8 @@
         "broadcast": 8.4
       },
       "mean_word_jaccard_between_modes": {
-        "casual|analyst": 0.188,
-        "casual|broadcast": 0.312,
+        "casual|analyst": 0.19,
+        "casual|broadcast": 0.316,
         "analyst|broadcast": 0.154
       },
       "note": "Lower Jaccard = more different vocabulary. Broadcast additionally emits a structured overlay; analyst adds before/after tables."
@@ -284,10 +284,61 @@
   "latency": {
     "runs": 30,
     "writer": "template (local fallback)",
-    "p50_ms": 145.4,
-    "p95_ms": 204.2,
+    "p50_ms": 146.5,
+    "p95_ms": 182.8,
     "failure_rate": 0.0,
     "note": "Excludes event generation; Foundry model latency is not included (no cloud model in this environment)."
   },
-  "elapsed_s": 13.9
+  "live_replay": {
+    "step_min": 5,
+    "seeds": "100-129",
+    "per_pattern": {
+      "dominance": {
+        "patterns": 120,
+        "flagged_live": 115,
+        "median_latency_min": 20.0,
+        "flagged_while_still_running": 0.958
+      },
+      "high_press": {
+        "patterns": 60,
+        "flagged_live": 57,
+        "median_latency_min": 10.0,
+        "flagged_while_still_running": 0.933
+      },
+      "counterattack": {
+        "patterns": 60,
+        "flagged_live": 43,
+        "median_latency_min": 15.0,
+        "flagged_while_still_running": 0.667
+      },
+      "momentum_swing": {
+        "patterns": 30,
+        "flagged_live": 29,
+        "median_latency_min": 35.0,
+        "flagged_while_still_running": 0.0
+      },
+      "late_comeback": {
+        "patterns": 30,
+        "flagged_live": 30,
+        "median_latency_min": 15.0,
+        "flagged_while_still_running": 1.0
+      },
+      "low_event": {
+        "patterns": 30,
+        "flagged_live": 29,
+        "median_latency_min": 90.0,
+        "flagged_while_still_running": 0.967
+      }
+    },
+    "overall_excludes": [
+      "low_event (whole-match judgement, only possible at full time)"
+    ],
+    "overall": {
+      "patterns": 300,
+      "flagged_live": 274,
+      "median_latency_min": 15.0,
+      "flagged_while_still_running": 0.803
+    }
+  },
+  "elapsed_s": 23.4
 }

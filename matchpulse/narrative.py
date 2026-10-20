@@ -171,6 +171,7 @@ def build_evidence(an: MatchAnalytics, moments: list[Moment]) -> dict[str, dict[
             reg[f"match.{side}.{key}"] = {"value": t[key], "label": f"{meta.short(team)} {key}", "source": "totals"}
     for key, val in METHOD_CONSTANTS.items():
         reg[f"method.{key}"] = {"value": val, "label": key, "source": "method"}
+    reg["match.minute"] = {"value": int(an.until_min), "label": "analysis minute (live replay)", "source": "replay"}
     reg["match.score_home"] = {"value": score[meta.home], "label": "home goals", "source": "goals"}
     reg["match.score_away"] = {"value": score[meta.away], "label": "away goals", "source": "goals"}
     for m in moments:
@@ -198,8 +199,8 @@ def _one_liner(m: Moment, lang: str, T: str, O: str) -> tuple[str, list[str]]:
     ev_t = [f"{i}.start_min", f"{i}.end_min"]
     en = lang == "en"
     if m.pattern == "dominance":
-        return ((f"{s}'–{e}': {T} made {f['fte_share_pct']}% of the match's entries into the final third."
-                 if en else f"{s}'–{e}': {T} mencatat {f['fte_share_pct']}% dari seluruh penetrasi ke sepertiga akhir."),
+        return ((f"{s}'–{e}': {T} made {f['fte_share_pct']}% of all final-third entries in that spell."
+                 if en else f"{s}'–{e}': {T} mencatat {f['fte_share_pct']}% dari seluruh penetrasi ke sepertiga akhir pada periode itu."),
                 ev_t + [f"{i}.fte_share_pct"])
     if m.pattern == "high_press":
         return ((f"{s}'–{e}': {T} pressed high {f['high_pressures']} times, and {O} lost the ball {f['press_linked_turnovers']} times soon after a press."
@@ -240,6 +241,13 @@ def _headline(m: Optional[Moment], lang: str, T: str, O: str, an: MatchAnalytics
         "late_comeback": (f"{T} turned the game around late", f"{T} membalikkan keadaan di akhir laga"),
         "low_event": ("A tight, low-chance contest", "Laga ketat dengan sedikit peluang"),
     }[m.pattern]
+    if m.status == "ongoing" and m.pattern in ("dominance", "high_press", "counterattack"):
+        ids = [f"{m.id}.start_min"]
+        H = {
+            "dominance": (f"{T} have been running the game since {s}'", f"{T} menguasai laga sejak menit {s}"),
+            "high_press": (f"{T}'s high press has been squeezing {O} since {s}'", f"Pressing tinggi {T} menekan {O} sejak menit {s}"),
+            "counterattack": (f"{T} have been dangerous on the break since {s}'", f"{T} berbahaya lewat serangan balik sejak menit {s}"),
+        }[m.pattern]
     if m.pattern in ("late_comeback", "low_event"):
         ids = []
     return (H[0] if en else H[1]), ids
@@ -363,7 +371,7 @@ def _overlay(m: Moment, lang: str, T: str, O: str) -> dict[str, Any]:
         "id": m.id, "pattern": m.pattern, "team": m.team, "team_name": T or None,
         "timestamp_min": int(m.end_min), "window": [m.start_min, m.end_min],
         "headline": headline[:42], "metric_label": metric[0], "metric_value": metric[1],
-        "text": text[:110], "strength": m.strength, "evidence_ids": m.evidence_event_ids[:10],
+        "text": text[:110], "strength": m.strength, "status": m.status, "evidence_ids": m.evidence_event_ids[:10],
         "synthetic": True,
     }
 
@@ -383,10 +391,16 @@ def render(mode: str, lang: str, an: MatchAnalytics, moments: list[Moment]) -> N
     u = UI[lang]
     blocks: list[Block] = []
     sc = an.score()
-    recap_text = (f"Final score: {meta.short(meta.home)} {sc[meta.home]}–{sc[meta.away]} {meta.short(meta.away)}."
-                  if lang == "en" else
-                  f"Skor akhir: {meta.short(meta.home)} {sc[meta.home]}–{sc[meta.away]} {meta.short(meta.away)}.")
-    recap_claim = Claim("recap.score", recap_text, ["match.score_home", "match.score_away"], "recap")
+    line = f"{meta.short(meta.home)} {sc[meta.home]}–{sc[meta.away]} {meta.short(meta.away)}"
+    score_ids = ["match.score_home", "match.score_away"]
+    if an.live:
+        minute = int(an.until_min)
+        recap_text = f"Score at {minute}': {line} (match in progress)." if lang == "en" else \
+            f"Skor menit {minute}: {line} (laga masih berjalan)."
+        score_ids = score_ids + ["match.minute"]
+    else:
+        recap_text = f"Final score: {line}." if lang == "en" else f"Skor akhir: {line}."
+    recap_claim = Claim("recap.score", recap_text, score_ids, "recap")
 
     if mode == "casual":
         if top:
@@ -409,6 +423,8 @@ def render(mode: str, lang: str, an: MatchAnalytics, moments: list[Moment]) -> N
             t2, o2 = names(m)
             label = PATTERN_LABEL[lang][m.pattern] + (f" — {t2}" if t2 else "")
             title = f"{label} · {int(m.start_min)}'–{int(m.end_min)}'"
+            if m.status == "ongoing":
+                title += " · " + ("ongoing" if lang == "en" else "masih berlangsung")
             obs, obs_ids = _observation(m, lang, t2, o2)
             interp, interp_ids = _interpretation(m, lang, t2, o2)
             conf = (f"Evidence strength: {STRENGTH[lang][m.strength]} ({fmt(m.strength_score, lang)})." if lang == "en"
@@ -435,8 +451,10 @@ def render(mode: str, lang: str, an: MatchAnalytics, moments: list[Moment]) -> N
             lines.append(Claim(f"{m.id}.line", t, ids, "observation"))
     if not lines:
         lines.append(Claim("none", u["no_moment"], [], "observation"))
-    lines.append(Claim("recap.score", (f"FT — {meta.short(meta.home)} {sc[meta.home]}–{sc[meta.away]} {meta.short(meta.away)}."),
-                       ["match.score_home", "match.score_away"], "recap"))
+    if an.live:
+        lines.append(Claim("recap.score", f"{int(an.until_min)}' — LIVE: {line}.", score_ids, "recap"))
+    else:
+        lines.append(Claim("recap.score", f"FT — {line}.", score_ids, "recap"))
     blocks.append(Block("narration", u["narration"], lines))
     overlay = [_overlay(m, lang, *names(m)) for m in sorted(moments, key=lambda x: x.end_min)]
     return Narrative(mode, lang, headline, blocks, overlay)
