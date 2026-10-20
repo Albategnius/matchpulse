@@ -19,7 +19,8 @@ Legend: ✅ done and verified · ⚠️ done but not verified in the build envir
 | Evidence & Quality Reviewer, regeneration, fallback | ✅ | Fault-injection mode, tests |
 | Live replay mode (minute-by-minute, no future data) | ✅ | `tests/test_live.py`, live section of `reports/EVALUATION.md` |
 | Dashboard | ✅ | Local run + screenshots (desktop and 390 px mobile) |
-| Tests | ✅ | 52 passed |
+| Tests | ✅ | 66 passed |
+| Reviewer red-team (8 fault types + paraphrase false alarms) | ✅ | `matchpulse/redteam.py`, `tests/test_redteam.py`, red-team section of `reports/EVALUATION.md` |
 | Evaluation results | ✅ | `reports/EVALUATION.md` |
 | Dockerfile | ✅ | Built in Azure by `az containerapp up --source .` and running |
 | Azure Container Apps deployment | ✅ | https://matchpulse.politefield-ec1b9bf6.southeastasia.azurecontainerapps.io — deployed 20 Oct 2026 via Cloud Shell (southeastasia, rg-matchpulse, min/max replicas 1/3); `/api/health` returned `status: ok` |

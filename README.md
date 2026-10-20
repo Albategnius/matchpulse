@@ -43,7 +43,7 @@ From `python scripts/evaluate.py` (full report: [`reports/EVALUATION.md`](report
 
 - **Live replay** (detector sees only events up to the current minute): 80% of injected patterns are flagged while still running; median time-to-flag 15 min (high press 10 min, momentum swing 35 min — reported openly in the evaluation).
 - Template narratives: 100% of 1,292 claims verified against evidence (180 narratives, 3 modes × 2 languages).
-- Reviewer stress test: 215 of 215 corrupted claims removed, 0 false alarms — against a *simple* fault model (changed numbers, explicit causal words). Subtler, number-free errors are not caught by this checker.
+- **Red-team of the reviewer** (8 fault types: wrong or off-by-one numbers, swapped teams, reversed comparisons, causal and overclaiming language, stripped hedges, invented sentences): 17,205 of 17,579 corrupted claims caught (97.9%); 0 false alarms on 1,737 faithful paraphrases. A ninth fault (meaning-changing adjectives) is included on purpose and mostly escapes — the reviewer checks facts, not tone.
 - End-to-end workflow (local mode): p50 ≈ 0.13 s, 0% failures over 30 runs.
 
 ## Microsoft technologies
@@ -70,7 +70,7 @@ uvicorn matchpulse.api:app --port 8000
 Open http://localhost:8000. The default demo (momentum swing, seed 7) runs immediately.
 
 ```bash
-pytest -q                            # 45 tests
+pytest -q                            # 66 tests
 python scripts/evaluate.py           # regenerates reports/evaluation.json and EVALUATION.md
 python scripts/generate_samples.py   # regenerates data/samples/*.csv|json
 ```

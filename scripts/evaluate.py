@@ -27,6 +27,7 @@ from matchpulse.shifts import DetectorConfig, detect_shifts  # noqa: E402
 from matchpulse.synth import SCENARIOS, generate_match  # noqa: E402
 from matchpulse.workflow import MatchRequest, run_pipeline  # noqa: E402
 from matchpulse.live_eval import live_latency  # noqa: E402
+from matchpulse.redteam import run_redteam  # noqa: E402
 from matchpulse.writer import REWRITABLE_KINDS, TemplateWriter  # noqa: E402
 
 DEV = range(0, 10)
@@ -160,9 +161,29 @@ def write_markdown(r: dict, path: Path) -> None:
               f"- Numeric factual consistency: {nq['numeric_factual_consistency']:.2%}",
               f"- Evidence coverage of material claims: {nq['evidence_coverage']:.2%}",
               f"- Unsupported-claim rate: {nq['unsupported_claim_rate']:.2%}", "",
-              "## Reviewer stress test (simulated faulty model)", ""]
+              "## Red-team: can the Evidence & Quality Reviewer be fooled?", "",
+              "Each fault rewrites ONE verified claim the way a careless or hallucinating model might; the reviewer checks it "
+              "exactly as in production (evidence check + comparison with the verified source claim). Held-out seeds "
+              f"{r['red_team']['seeds']}, full-time and live (60') narratives, all audience modes, English and Bahasa Indonesia.", "",
+              "| Fault | What it does | Corrupted claims | Caught | Catch rate |", "|---|---|---|---|---|"]
+    rt = r["red_team"]
+    desc = {"wrong_number": "changes a number by 3–12", "off_by_one": "changes an integer by ±1",
+            "team_swap": "swaps the two teams", "reversed_comparison": "flips 'from A to B' / 'A (baseline B)'",
+            "causal_claim": "turns 'consistent with' into 'caused by'", "overclaim": "prefixes 'This proves that'",
+            "hedge_removal": "strips every uncertainty hedge", "fabricated_sentence": "appends an invented, number-free fact",
+            "qualitative_distortion": "adds 'Only marginally,' (expected to escape)"}
+    for k, v in rt["faults"].items():
+        lines.append(f"| {k} | {desc[k]} | {v['applied']} | {v['caught']} | {v['catch_rate']:.1%} |")
+    od, fp = rt["overall_designed"], rt["faithful_paraphrases"]
+    lines += ["", f"- **Designed fault types (8): {od['caught']} of {od['applied']} corrupted claims caught ({od['catch_rate']:.1%}).**",
+              f"- **Faithful paraphrases (wording changed, facts unchanged): {fp['false_alarms']} false alarms out of {fp['applied']} ({fp['false_alarm_rate']:.1%}).**",
+              "- What still gets through: a wrong number that happens to equal another value cited in the same claim; an invented "
+              "sentence glued onto an unpunctuated headline; and meaning-changing adjectives that keep numbers, teams and hedges intact "
+              "(`qualitative_distortion`). The reviewer is a deterministic fact checker, not a semantic judge.",
+              "- Escaped examples are stored in `reports/evaluation.json` (`red_team.faults.*.examples_escaped`).", "",
+              "## End-to-end: simulated faulty model through the agent workflow", ""]
     fc = r["reviewer_fault_injection"]
-    lines += [f"- Corrupted claims (wrong numbers and/or causal language): {fc['corrupted_claims']}",
+    lines += [f"- Corrupted claims produced by the simulated model on its first attempt: {fc['corrupted_claims']}",
               f"- Caught and removed by the Evidence & Quality Reviewer: {fc['caught']} ({fc['catch_rate']:.2%})",
               f"- False alarms on untouched claims: {fc['false_alarms']} of {fc['untouched_claims']}", "",
               "## Personalization", ""]
@@ -192,7 +213,7 @@ def write_markdown(r: dict, path: Path) -> None:
               "- Ground truth comes from the same generator family the detector was designed for; real-world transfer is not claimed.",
               "- Counterattack detection is the weakest pattern; the mechanical fast-break definition overlaps with ordinary quick attacks.",
               "- Unlabelled detections count as false positives even when the pattern genuinely occurred by chance in the simulation.",
-              "- The 100% reviewer catch rate is against a simple fault model (changed numbers, explicit causal words). Subtler errors - a wrong comparison stated without numbers, or a misleading but number-free sentence - are NOT detected by the numeric checker.",
+              "- The reviewer checks facts, attribution, comparisons, hedges and certainty language; it does not judge tone or subtle semantic distortion (see the red-team section).",
               "- Live Foundry-model quality was not measured here (no cloud credentials in the build environment)."]
     path.write_text("\n".join(lines) + "\n")
 
@@ -206,6 +227,7 @@ async def main() -> None:
         "detection": {"dev": detection(DEV), "held_out": detection(HELD_OUT)},
         "narrative": narrative_quality(range(100, 105)),
         "reviewer_fault_injection": await reviewer_fault_catch_exact(range(100, 103)),
+        "red_team": dict(run_redteam(range(100, 110)), seeds="100-109"),
         "latency": await latency(),
         "live_replay": live_latency(HELD_OUT),
     }
@@ -219,6 +241,8 @@ async def main() -> None:
     print(f"held-out detection: P {o['precision']} R {o['recall']} F1 {o['f1']}")
     print(f"narrative consistency {report['narrative']['numeric_factual_consistency']}, "
           f"reviewer catch rate {report['reviewer_fault_injection']['catch_rate']}, "
+          f"red-team {report['red_team']['overall_designed']['catch_rate']} "
+          f"(false alarms {report['red_team']['faithful_paraphrases']['false_alarm_rate']}), "
           f"latency p50 {report['latency']['p50_ms']} ms")
 
 

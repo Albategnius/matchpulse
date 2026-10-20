@@ -281,11 +281,106 @@
     "untouched_claims": 199,
     "false_alarms": 0
   },
+  "red_team": {
+    "faults": {
+      "wrong_number": {
+        "applied": 2900,
+        "caught": 2900,
+        "examples_escaped": [],
+        "catch_rate": 1.0
+      },
+      "off_by_one": {
+        "applied": 2546,
+        "caught": 2506,
+        "examples_escaped": [
+          "Compared with the rest of the match \u2014 Final-third entry share %: 73.7 (baseline 55.3); Completed-pass share %: 61.4 (baseline 50.2); Final-third entries per win",
+          "Compared with the rest of the match \u2014 Final-third entry share %: 89.5 (baseline 48); Completed-pass share %: 66.9 (baseline 54.4); Final-third entries per windo",
+          "Dibandingkan sisa pertandingan \u2014 Porsi penetrasi sepertiga akhir %: 95,2 (pembanding 57,1); Porsi umpan sukses %: 68,2 (pembanding 53,9); Penetrasi sepertiga ak"
+        ],
+        "catch_rate": 0.9843
+      },
+      "team_swap": {
+        "applied": 2442,
+        "caught": 2442,
+        "examples_escaped": [],
+        "catch_rate": 1.0
+      },
+      "reversed_comparison": {
+        "applied": 344,
+        "caught": 344,
+        "examples_escaped": [],
+        "catch_rate": 1.0
+      },
+      "causal_claim": {
+        "applied": 328,
+        "caught": 328,
+        "examples_escaped": [],
+        "catch_rate": 1.0
+      },
+      "overclaim": {
+        "applied": 4332,
+        "caught": 4332,
+        "examples_escaped": [],
+        "catch_rate": 1.0
+      },
+      "hedge_removal": {
+        "applied": 355,
+        "caught": 355,
+        "examples_escaped": [],
+        "catch_rate": 1.0
+      },
+      "fabricated_sentence": {
+        "applied": 4332,
+        "caught": 3998,
+        "examples_escaped": [
+          "Harbour City turned the game around late Harbour City's captain was substituted at half-time.",
+          "Harbour City turned the game around late Harbour City's captain was substituted at half-time.",
+          "Harbour City membalikkan keadaan di akhir laga Kapten Harbour City diganti saat jeda."
+        ],
+        "catch_rate": 0.9229
+      },
+      "qualitative_distortion": {
+        "applied": 4332,
+        "caught": 171,
+        "examples_escaped": [
+          "Only marginally, northbridge ran the game from 15' to 55'",
+          "Only marginally, 15'\u201355': Northbridge made 88% of all final-third entries in that spell.",
+          "Only marginally, long spells near goal usually mean more chances: Northbridge had 16 shots in that period."
+        ],
+        "catch_rate": 0.0395
+      }
+    },
+    "designed_fault_types": [
+      "wrong_number",
+      "off_by_one",
+      "team_swap",
+      "reversed_comparison",
+      "causal_claim",
+      "overclaim",
+      "hedge_removal",
+      "fabricated_sentence"
+    ],
+    "expected_to_escape": [
+      "qualitative_distortion"
+    ],
+    "overall_designed": {
+      "applied": 17579,
+      "caught": 17205,
+      "catch_rate": 0.9787
+    },
+    "faithful_paraphrases": {
+      "applied": 1737,
+      "false_alarms": 0,
+      "examples": [],
+      "false_alarm_rate": 0.0
+    },
+    "seeds": "100-109"
+  },
   "latency": {
     "runs": 30,
     "writer": "template (local fallback)",
-    "p50_ms": 146.5,
-    "p95_ms": 182.8,
+    "p50_ms": 114.8,
+    "p95_ms": 166.9,
     "failure_rate": 0.0,
     "note": "Excludes event generation; Foundry model latency is not included (no cloud model in this environment)."
   },
@@ -340,5 +435,5 @@
       "flagged_while_still_running": 0.803
     }
   },
-  "elapsed_s": 23.4
+  "elapsed_s": 27.3
 }

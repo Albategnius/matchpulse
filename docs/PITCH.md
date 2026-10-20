@@ -25,8 +25,9 @@ Fans, analysts and broadcasters all see the same box score, but none of them get
 1. **Evidence-to-story:** every sentence cites evidence ids; the reviewer verifies every number (100% of 1,292 template claims verified).
 2. **Ground-truth-tested detection:** F1 0.84 on 180 held-out synthetic matches, with the weakest pattern (counterattack, F1 0.63) reported openly.
 3. **Same insight, three real audiences:** different content and format, not a changed heading (word-overlap Jaccard 0.15–0.31 between modes).
-4. **Hallucination guardrail you can watch:** a simulated faulty model invents numbers and causes; the reviewer rejects 215/215 corrupted claims, triggers regeneration, then approves.
-5. **Correlation, not causation:** associative wording is enforced in code.
+4. **A hallucination guardrail that was attacked, not just demoed:** a red-team of 8 fault types (swapped teams, reversed comparisons, off-by-one numbers, stripped hedges, overclaims, invented sentences…) — 97.9% of 17,579 corrupted claims caught with 0 false alarms on 1,737 faithful paraphrases. What still escapes is published too.
+5. **Live replay with measured time-to-flag:** the agents re-run every 5 match-minutes on only the events seen so far; 80% of injected patterns are flagged while still running (median 15 min).
+6. **Correlation, not causation:** associative wording is enforced in code.
 
 ## Microsoft technologies
 

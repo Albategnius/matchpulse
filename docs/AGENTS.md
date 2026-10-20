@@ -17,6 +17,10 @@ Edges: analytics → insight → narrative → reviewer, plus reviewer → narra
 2. Every number in the sentence matches (after rounding) a value of the sentence's cited evidence. Numbers without citations fail.
 3. No causal language (`caused`, `because of`, `led to`, `due to`, `menyebabkan`, `karena`, `akibat`…). Required hedges such as "not proven to be caused by" are allowed.
 4. No team names outside this match.
+5. No certainty language ("proves", "definitely", "membuktikan", "pasti") — negated hedges such as "not proof" are allowed.
+6. When a draft rewords a verified template claim, it is compared with that source claim: team attribution order must not change, a comparison ("from A to B", "A (baseline B)") must not be reversed, numbers may not be duplicated or nudged (new numbers must exactly match cited evidence), an associative hedge may not be dropped, and no sentences may be added.
+
+Red-team results for these checks are in `reports/EVALUATION.md`.
 
 ## Example trace (fault-injection mode, high press seed 4)
 

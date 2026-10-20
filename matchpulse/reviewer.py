@@ -15,8 +15,9 @@ the review is REJECTED and the workflow regenerates (bounded) or falls back.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 from .narrative import Claim, Narrative
 
@@ -31,6 +32,26 @@ NEGATED_CAUSAL_RE = re.compile(
     r"(not (proven|proof)[^.]*caused|are not proven to be caused|tidak terbukti disebabkan|bukan bukti bahwa)",
     re.IGNORECASE,
 )
+NEGATED_PROOF_RE = re.compile(r"(not proven|not proof|no proof|tidak terbukti|bukan bukti)", re.IGNORECASE)
+OVERCLAIM_RE = re.compile(
+    r"\b(proves?|proved|proven|proof that|definitely|certainly|undoubtedly|guarantee[sd]?|"
+    r"membuktikan|terbukti|bukti bahwa|pasti|tanpa diragukan|dipastikan)\b",
+    re.IGNORECASE,
+)
+HEDGE_RE = re.compile(
+    r"(consistent with|coincided with|associat|not proof|not proven|hypothes|"
+    r"konsisten dengan|bersamaan dengan|asosiasi|bukan bukti|tidak terbukti|hipotesis)",
+    re.IGNORECASE,
+)
+_NUM = r"-?\d+(?:[.,]\d+)?"
+PAIR_RES = [
+    re.compile(rf"from ({_NUM}) to ({_NUM})", re.IGNORECASE),
+    re.compile(rf"dari ({_NUM}) menjadi ({_NUM})", re.IGNORECASE),
+    re.compile(rf"({_NUM}) \((?:baseline|pembanding) ({_NUM})\)", re.IGNORECASE),
+]
+# Split after sentence punctuation, or before a capitalised word that follows a minute mark or a number
+# (headlines have no final full stop). Counts are only ever compared with the reference claim split the same way.
+SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=\S)|(?<=['\d])\s+(?=[A-Z])")
 
 MAX_REMOVED_SHARE = 0.3
 
@@ -101,17 +122,88 @@ def check_claim(claim: Claim, registry: dict[str, dict[str, Any]], team_names: s
     text_wo_hedges = NEGATED_CAUSAL_RE.sub("", claim.text)
     if CAUSAL_RE.search(text_wo_hedges):
         problems.append("causal language not supported by association-only analytics")
+    if OVERCLAIM_RE.search(NEGATED_PROOF_RE.sub("", claim.text)):
+        problems.append("overclaims certainty (proof/definitely) beyond descriptive statistics")
     for name in other_names:
         if name and name in claim.text and name not in team_names:
             problems.append(f"mentions a team not in this match: {name}")
     return problems
 
 
+def _team_sequence(text: str, names: set[str]) -> list[str]:
+    """Teams in order of first mention (short names only; full names contain them)."""
+    shorts = [n for n in names if n and not any(m != n and m and m in n for m in names)]
+    found = sorted((text.find(n), n) for n in shorts if n in text)
+    return [n for _, n in found]
+
+
+def _pairs(text: str) -> set[tuple[str, str]]:
+    out = set()
+    for rx in PAIR_RES:
+        for a, b in rx.findall(text):
+            out.add((a.replace(",", "."), b.replace(",", ".")))
+    return out
+
+
+def _sentence_count(text: str) -> int:
+    return len([x for x in SENTENCE_SPLIT_RE.split(text.strip()) if x.strip()])
+
+
+def _strict_match(n: float, values: list[Any]) -> bool:
+    for v in values:
+        for it in (v if isinstance(v, list) else [v]):
+            if isinstance(it, (int, float)) and not isinstance(it, bool):
+                f = abs(float(it))
+                if any(abs(n - a) < 0.051 for a in (f, round(f, 1), float(round(f)))):
+                    return True
+            elif any(abs(n - a) < 0.051 for a in _numbers(str(it))):
+                return True
+    return False
+
+
+def check_against_reference(claim: Claim, ref: Claim, team_names: set[str],
+                            registry: Optional[dict[str, dict[str, Any]]] = None) -> list[str]:
+    """Compare a reworded claim with the verified template claim it was derived from."""
+    problems = []
+    if claim.text == ref.text:
+        return problems
+    ref_counts = Counter(round(x, 2) for x in _numbers(ref.text))
+    new_counts = Counter(round(x, 2) for x in _numbers(claim.text))
+    extra = new_counts - ref_counts
+    repeated = [v for v in extra if v in ref_counts]
+    if repeated:
+        problems.append(f"number(s) {repeated} used more often than in the verified claim")
+    novel = [v for v in extra if v not in ref_counts]
+    if novel and registry is not None:
+        cited = [registry[e]["value"] for e in claim.evidence if e in registry]
+        loose = [v for v in novel if not _strict_match(v, cited)]
+        if loose:
+            problems.append(f"number(s) {loose} differ from the verified claim and do not exactly match cited evidence")
+    ref_teams, new_teams = _team_sequence(ref.text, team_names), _team_sequence(claim.text, team_names)
+    if ref_teams and new_teams and new_teams != ref_teams:
+        problems.append(f"team attribution changed ({' → '.join(ref_teams)} became {' → '.join(new_teams)})")
+    ref_pairs, new_pairs = _pairs(ref.text), _pairs(claim.text)
+    reversed_pairs = [p for p in new_pairs if p not in ref_pairs and (p[1], p[0]) in ref_pairs]
+    if reversed_pairs:
+        problems.append(f"comparison reversed: {reversed_pairs}")
+    if HEDGE_RE.search(ref.text) and not HEDGE_RE.search(claim.text):
+        problems.append("uncertainty hedge removed from an associative claim")
+    if _sentence_count(claim.text) > _sentence_count(ref.text):
+        problems.append("adds sentence(s) that are not in the verified claim")
+    return problems
+
+
 def review(narrative: Narrative, registry: dict[str, dict[str, Any]], team_names: set[str],
-           banned_names: set[str] | None = None) -> tuple[Narrative, ReviewReport]:
-    """Return a cleaned narrative (unsupported claims removed) and the review report."""
+           banned_names: set[str] | None = None,
+           reference: Optional[Narrative] = None) -> tuple[Narrative, ReviewReport]:
+    """Return a cleaned narrative (unsupported claims removed) and the review report.
+
+    `reference` is the deterministic template narrative the draft was derived from; when
+    given, every reworded claim is also compared with its source claim.
+    """
     rep = ReviewReport()
     banned = banned_names or set()
+    refs = {c.id: c for c in reference.all_claims()} if reference is not None else {}
 
     def material(c: Claim) -> bool:
         return bool(_numbers(c.text)) or c.kind == "interpretation"
@@ -121,6 +213,8 @@ def review(narrative: Narrative, registry: dict[str, dict[str, Any]], team_names
         if material(c):
             rep.material_claims += 1
         problems = check_claim(c, registry, team_names, banned)
+        if c.id in refs:
+            problems += check_against_reference(c, refs[c.id], team_names, registry)
         if problems:
             rep.removed.append({"claim_id": c.id, "text": c.text, "problems": problems})
             return False

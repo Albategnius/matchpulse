@@ -347,7 +347,8 @@
       const o = e.detection?.held_out?.overall;
       const lv = e.live_replay?.overall;
       if (o) $("evalSummary").textContent = `Held-out evaluation (${e.detection.held_out.matches} matches): precision ${o.precision}, recall ${o.recall}, F1 ${o.f1}.` +
-        (lv ? ` Live replay: ${Math.round(lv.flagged_while_still_running * 100)}% of patterns flagged while still running, median ${lv.median_latency_min} min after they start.` : "");
+        (lv ? ` Live replay: ${Math.round(lv.flagged_while_still_running * 100)}% of patterns flagged while still running, median ${lv.median_latency_min} min after they start.` : "") +
+        (e.red_team ? ` Reviewer red-team: ${(e.red_team.overall_designed.catch_rate * 100).toFixed(1)}% of ${e.red_team.overall_designed.applied.toLocaleString("en")} corrupted claims caught, ${e.red_team.faithful_paraphrases.false_alarms} false alarms.` : "");
     } catch (_) { /* optional */ }
   }
 

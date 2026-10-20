@@ -27,9 +27,30 @@ Per scenario (overall F1): dominance 0.91, high_press 0.84, counterattack 0.66, 
 - Evidence coverage of material claims: 100.00%
 - Unsupported-claim rate: 0.00%
 
-## Reviewer stress test (simulated faulty model)
+## Red-team: can the Evidence & Quality Reviewer be fooled?
 
-- Corrupted claims (wrong numbers and/or causal language): 215
+Each fault rewrites ONE verified claim the way a careless or hallucinating model might; the reviewer checks it exactly as in production (evidence check + comparison with the verified source claim). Held-out seeds 100-109, full-time and live (60') narratives, all audience modes, English and Bahasa Indonesia.
+
+| Fault | What it does | Corrupted claims | Caught | Catch rate |
+|---|---|---|---|---|
+| wrong_number | changes a number by 3–12 | 2900 | 2900 | 100.0% |
+| off_by_one | changes an integer by ±1 | 2546 | 2506 | 98.4% |
+| team_swap | swaps the two teams | 2442 | 2442 | 100.0% |
+| reversed_comparison | flips 'from A to B' / 'A (baseline B)' | 344 | 344 | 100.0% |
+| causal_claim | turns 'consistent with' into 'caused by' | 328 | 328 | 100.0% |
+| overclaim | prefixes 'This proves that' | 4332 | 4332 | 100.0% |
+| hedge_removal | strips every uncertainty hedge | 355 | 355 | 100.0% |
+| fabricated_sentence | appends an invented, number-free fact | 4332 | 3998 | 92.3% |
+| qualitative_distortion | adds 'Only marginally,' (expected to escape) | 4332 | 171 | 4.0% |
+
+- **Designed fault types (8): 17205 of 17579 corrupted claims caught (97.9%).**
+- **Faithful paraphrases (wording changed, facts unchanged): 0 false alarms out of 1737 (0.0%).**
+- What still gets through: a wrong number that happens to equal another value cited in the same claim; an invented sentence glued onto an unpunctuated headline; and meaning-changing adjectives that keep numbers, teams and hedges intact (`qualitative_distortion`). The reviewer is a deterministic fact checker, not a semantic judge.
+- Escaped examples are stored in `reports/evaluation.json` (`red_team.faults.*.examples_escaped`).
+
+## End-to-end: simulated faulty model through the agent workflow
+
+- Corrupted claims produced by the simulated model on its first attempt: 215
 - Caught and removed by the Evidence & Quality Reviewer: 215 (100.00%)
 - False alarms on untouched claims: 0 of 199
 
@@ -57,7 +78,7 @@ Thresholds favour precision: patterns must persist 10–20 minutes before they a
 
 ## Latency and reliability
 
-- 30 end-to-end workflow runs (template (local fallback)): p50 146.5 ms, p95 182.8 ms, failure rate 0%
+- 30 end-to-end workflow runs (template (local fallback)): p50 114.8 ms, p95 166.9 ms, failure rate 0%
 - Excludes event generation; Foundry model latency is not included (no cloud model in this environment).
 
 ## Limitations
@@ -65,5 +86,5 @@ Thresholds favour precision: patterns must persist 10–20 minutes before they a
 - Ground truth comes from the same generator family the detector was designed for; real-world transfer is not claimed.
 - Counterattack detection is the weakest pattern; the mechanical fast-break definition overlaps with ordinary quick attacks.
 - Unlabelled detections count as false positives even when the pattern genuinely occurred by chance in the simulation.
-- The 100% reviewer catch rate is against a simple fault model (changed numbers, explicit causal words). Subtler errors - a wrong comparison stated without numbers, or a misleading but number-free sentence - are NOT detected by the numeric checker.
+- The reviewer checks facts, attribution, comparisons, hedges and certainty language; it does not judge tone or subtle semantic distortion (see the red-team section).
 - Live Foundry-model quality was not measured here (no cloud credentials in the build environment).

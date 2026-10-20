@@ -206,7 +206,7 @@ class EvidenceQualityReviewer(Executor):
         reports: dict[str, ReviewReport] = {}
         feedback: dict[str, list[str]] = {}
         for mode, draft in d.drafts.items():
-            cleaned, rep = review(draft, ins.registry, teams)
+            cleaned, rep = review(draft, ins.registry, teams, reference=d.templates[mode])
             reviewed[mode], reports[mode] = cleaned, rep
             d.review_history.append({"attempt": d.attempt, "mode": mode, "source": draft.source,
                                      "status": rep.status, "removed": rep.removed[:5], "reasons": rep.reasons})
